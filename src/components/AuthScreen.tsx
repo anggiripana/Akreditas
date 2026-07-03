@@ -24,15 +24,19 @@ export default function AuthScreen() {
       }
     } catch (err: any) {
       console.error(err);
-      let IndonesianMessage = "Terjadi kesalahan keamanan. Silakan periksa kredensial Anda.";
+      let IndonesianMessage = "";
       if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
-        IndonesianMessage = "Email atau password salah.";
+        IndonesianMessage = "Email atau password salah. Silakan periksa kembali kredensial Anda.";
       } else if (err.code === "auth/email-already-in-use") {
-        IndonesianMessage = "Alamat email ini sudah terdaftar.";
+        IndonesianMessage = "Alamat email ini sudah terdaftar. Silakan pilih Masuk jika sudah memiliki akun.";
       } else if (err.code === "auth/weak-password") {
         IndonesianMessage = "Kata sandi terlalu lemah (minimal 6 karakter).";
       } else if (err.code === "auth/invalid-email") {
         IndonesianMessage = "Format email tidak valid.";
+      } else if (err.code === "auth/operation-not-allowed") {
+        IndonesianMessage = "Metode masuk 'Email/Sandi' belum diaktifkan di Firebase Console Anda. Silakan aktifkan di menu Authentication > Sign-in method pada konsol Firebase Anda.";
+      } else {
+        IndonesianMessage = `Terjadi kesalahan keamanan (${err.code || "unknown-error"}). Silakan periksa kredensial Anda atau aktifkan penyedia login di Firebase Console.`;
       }
       setError(IndonesianMessage);
     } finally {
@@ -47,7 +51,11 @@ export default function AuthScreen() {
       await signInAnonymously(auth);
     } catch (err: any) {
       console.error(err);
-      setError("Gagal masuk sebagai Tamu. Silakan coba login manual.");
+      if (err.code === "auth/operation-not-allowed") {
+        setError("Fitur masuk sebagai Tamu (Anonim) belum diaktifkan di Firebase Console Anda. Silakan aktifkan penyedia login 'Anonymous' di menu Authentication > Sign-in method.");
+      } else {
+        setError(`Gagal masuk sebagai Tamu (${err.code || "unknown-error"}). Silakan coba login manual atau periksa konfigurasi Firebase Anda.`);
+      }
     } finally {
       setLoading(false);
     }
@@ -95,9 +103,35 @@ export default function AuthScreen() {
         </div>
 
         {error && (
-          <div id="auth-error-alert" className="flex items-start gap-3 bg-red-50 border border-red-100 text-red-700 p-3 rounded-xl text-sm">
-            <AlertCircle className="h-5 w-5 shrink-0 text-red-500 mt-0.5" />
-            <span>{error}</span>
+          <div className="space-y-3">
+            <div id="auth-error-alert" className="flex items-start gap-3 bg-red-50 border border-red-100 text-red-700 p-3.5 rounded-xl text-sm">
+              <AlertCircle className="h-5 w-5 shrink-0 text-red-500 mt-0.5" />
+              <span>{error}</span>
+            </div>
+            
+            <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-800 space-y-2.5">
+              <div className="font-extrabold flex items-center gap-1.5 text-amber-900">
+                <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>Langkah Solusi Tercepat:</span>
+              </div>
+              <p className="leading-relaxed">
+                Pesan ini biasanya muncul jika konfigurasi autentikasi di Firebase Console belum aktif sepenuhnya. Silakan ikuti langkah berikut:
+              </p>
+              <ol className="list-decimal pl-4.5 space-y-1.5 leading-relaxed font-medium">
+                <li>
+                  Buka <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="underline text-amber-900 font-bold hover:text-amber-950">Firebase Console</a> Anda.
+                </li>
+                <li>
+                  Pilih proyek Anda, lalu buka menu <strong>Authentication</strong> &gt; tab <strong>Sign-in method</strong>.
+                </li>
+                <li>
+                  Aktifkan penyedia login <strong>Email/Password</strong> agar Anda bisa membuat akun & masuk menggunakan email.
+                </li>
+                <li>
+                  Aktifkan penyedia login <strong>Anonymous (Anonim)</strong> jika Anda ingin menggunakan fitur tombol masuk cepat (Tamu).
+                </li>
+              </ol>
+            </div>
           </div>
         )}
 
